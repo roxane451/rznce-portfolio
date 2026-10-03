@@ -66,7 +66,18 @@ export default function Manifesto() {
           changer de fournisseur.
         </p>
       </div>
-      <p className="prop-swipe-hint" aria-hidden="true">Faites glisser pour parcourir les 3 propriétés →</p>
+      <div className="prop-controls" aria-label="Navigation des propriétés">
+        <span className="prop-count" aria-live="polite">01 / 03</span>
+        <div className="prop-progress" role="progressbar" aria-label="Progression des propriétés" aria-valuemin="1" aria-valuemax="3" aria-valuenow="1">
+          <span />
+        </div>
+        <button type="button" data-prop-step="-1" aria-label="Propriété précédente" disabled>
+          <span aria-hidden="true">←</span>
+        </button>
+        <button type="button" data-prop-step="1" aria-label="Propriété suivante">
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>
       <div className="prop-track" role="region" aria-label="Les trois propriétés de la résonance" tabIndex="0">
         {properties.map((property) => <PropertyCard key={property.kind} property={property} />)}
       </div>
