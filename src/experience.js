@@ -4,7 +4,6 @@ import { SplitText } from 'gsap/SplitText';
 
 export function initializeExperience(){
 var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var canHover = matchMedia('(hover: hover)').matches;
   var hasGsap = true;
   var SVGNS = 'http://www.w3.org/2000/svg';
 
@@ -20,7 +19,7 @@ var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var labelEls = [];                             // [élément, indexNote] à mettre à jour
 
   /* ---------- son (Web Audio, coupé par défaut) ---------- */
-  var ctx = null, bus = null, soundOn = false;
+  var ctx = null, bus = null, soundOn = false, audioResume = null;
   var btn = document.getElementById('sound'), btnLabel = document.getElementById('soundLabel');
   function initAudio(){
     var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
@@ -34,10 +33,23 @@ var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     lp.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(ctx.destination);
     return true;
   }
+  function resumeAudio(){
+    if (!ctx || ctx.state === 'running') return Promise.resolve(!!ctx);
+    if (audioResume) return audioResume;
+    try {
+      audioResume = ctx.resume().then(function(){ return ctx.state === 'running'; }).catch(function(error){
+        console.error('Impossible de réactiver le son.', error);
+        return false;
+      }).then(function(running){ audioResume = null; return running; });
+    } catch (error) {
+      console.error('Impossible de réactiver le son.', error);
+      return Promise.resolve(false);
+    }
+    return audioResume;
+  }
   btn.addEventListener('click', function(){
     if (!ctx && !initAudio()) return;
     soundOn = !soundOn;
-    if (soundOn && ctx.state === 'suspended') ctx.resume();
     btn.setAttribute('aria-pressed', soundOn);
     btn.setAttribute('aria-label', soundOn ? 'Couper le son' : 'Activer le son');
     btnLabel.textContent = soundOn ? 'on' : 'off';
@@ -73,6 +85,10 @@ var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var lastPlay = {};
   function play(i, vel){
     if (!soundOn || !ctx) return;
+    if (ctx.state !== 'running'){
+      resumeAudio().then(function(running){ if (running && soundOn) play(i, vel); });
+      return;
+    }
     var now = performance.now(); if (lastPlay[i] && now - lastPlay[i] < 90) return; lastPlay[i] = now;
     var f = freq(i), t = ctx.currentTime, g = ctx.createGain();
     g.gain.setValueAtTime(0, t);
@@ -136,8 +152,6 @@ var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ---------- les montagnes qui sonnent ---------- */
   var harp = document.getElementById('harp'), hsvg = harp.querySelector('svg');
-  var hint = document.getElementById('hint');
-  hint.textContent = canHover ? 'Passe la souris sur le réseau.' : 'Touche un nœud.';
   var pingLabel = document.getElementById('pingLabel'), pingTimer = null;
   function showPing(xFrac, yVB, ms){
     var rc = hsvg.getBoundingClientRect();
@@ -355,7 +369,7 @@ var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       var dt = Math.max(cur.t - prev.t, 8), speed = Math.hypot((cur.x - prev.x) * 1000, cur.y - prev.y) / dt;
       ridges.forEach(function(rd){
         var a = prev.y - rd.crestAt(prev.x), b = cur.y - rd.crestAt(cur.x);
-        if (a * b < 0){ rd.pluck(cur.x, .3 + Math.min(speed / 3, .7)); hint.classList.add('gone'); }
+        if (a * b < 0) rd.pluck(cur.x, .3 + Math.min(speed / 3, .7));
       });
     }
     var u = ridgeUnder(cur);
@@ -365,7 +379,7 @@ var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   harp.addEventListener('pointerleave', function(){ prev = null; ridges.forEach(function(rd){ rd.near = 0; }); });
   harp.addEventListener('pointerdown', function(e){
     var c = localPt(e), u = ridgeUnder(c);
-    if (u){ u.pluck(c.x, .75); hint.classList.add('gone'); }
+    if (u) u.pluck(c.x, .75);
   });
 
   /* ---------- cordes des séparateurs ---------- */
@@ -592,9 +606,17 @@ var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       }
     });
   }
+  var propGridFrame = 0;
+  function schedulePropGridSync(){
+    if (propGridFrame) return;
+    propGridFrame = requestAnimationFrame(function(){
+      propGridFrame = 0;
+      syncPropGrid();
+    });
+  }
   syncPropGrid();
-  addEventListener('resize', syncPropGrid);
-  if (propTrack) propTrack.addEventListener('scroll', syncPropGrid, { passive: true });
+  addEventListener('resize', schedulePropGridSync);
+  if (propTrack) propTrack.addEventListener('scroll', schedulePropGridSync, { passive: true });
 
   /* ---------- trame de colonnes : du haut de page jusqu'aux offres ---------- */
   function sizeCols(){
@@ -777,7 +799,24 @@ var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     el._setProgress = function(progress){ el._p = progress; if (el._kind !== 0) drawProp(el, 0); };
   });
   if (propTrack){
-    var trackFrame = 0;
+    var trackFrame = 0, activePropIndex = 0;
+    var propCount = document.querySelector('.prop-count');
+    var propProgress = document.querySelector('.prop-progress');
+    var propStepButtons = document.querySelectorAll('[data-prop-step]');
+    function scrollToProp(index){
+      var target = props[index];
+      if (!target) return;
+      var current = props[activePropIndex];
+      propTrack.scrollTo({
+        left: propTrack.scrollLeft + target.getBoundingClientRect().left - current.getBoundingClientRect().left,
+        behavior: reduce ? 'auto' : 'smooth'
+      });
+    }
+    propStepButtons.forEach(function(button){
+      button.addEventListener('click', function(){
+        scrollToProp(activePropIndex + +button.dataset.propStep);
+      });
+    });
     function updatePropTrack(){
       trackFrame = 0;
       if (!matchMedia('(max-width: 720px)').matches) return;
@@ -785,13 +824,23 @@ var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (step <= 0) return;
       var left = propTrack.scrollLeft, active = props[0], center = propTrack.getBoundingClientRect().left + propTrack.clientWidth / 2;
       props.forEach(function(el, i){
-        var p = i === 0 ? Math.max(0, Math.min(left / step, 1))
-          : i === 1 ? Math.max(0, Math.min((left - step) / step, 1))
-          : (left >= propTrack.scrollWidth - propTrack.clientWidth - 1 ? 1 : 0);
+        var atEnd = left >= propTrack.scrollWidth - propTrack.clientWidth - 1;
+        var progress = i === 0 ? left / step : (left - (i - 1) * step) / step;
+        var p = i === props.length - 1 && atEnd ? 1 : Math.max(0, Math.min(progress, 1));
         el._setProgress(p);
         el._vis = false;
         if (Math.abs(el.getBoundingClientRect().left + el.getBoundingClientRect().width / 2 - center) <
             Math.abs(active.getBoundingClientRect().left + active.getBoundingClientRect().width / 2 - center)) active = el;
+      });
+      activePropIndex = props.indexOf(active);
+      if (propCount) propCount.textContent = String(activePropIndex + 1).padStart(2, '0') + ' / ' + String(props.length).padStart(2, '0');
+      if (propProgress){
+        propProgress.setAttribute('aria-valuenow', activePropIndex + 1);
+        propProgress.firstElementChild.style.transform = 'scaleX(' + ((activePropIndex + 1) / props.length) + ')';
+      }
+      propStepButtons.forEach(function(button){
+        var nextIndex = activePropIndex + +button.dataset.propStep;
+        button.disabled = nextIndex < 0 || nextIndex >= props.length;
       });
       active._vis = true; active._reveal(); active._revealCopy();
     }

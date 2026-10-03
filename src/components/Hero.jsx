@@ -11,7 +11,6 @@ export default function Hero() {
           <defs />
           <g id="sky" />
         </svg>
-        <span className="hint" id="hint" />
         <span className="pinglabel" id="pingLabel" />
       </div>
 
