@@ -22,6 +22,7 @@ var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var ctx = null, bus = null, soundOn = false, audioResume = null;
   var btn = document.getElementById('sound'), btnLabel = document.getElementById('soundLabel');
   function initAudio(){
+    if (ctx) return true;
     var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
     ctx = new AC();
     bus = ctx.createGain(); bus.gain.value = .55;
@@ -32,6 +33,12 @@ var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     bus.connect(lp); lp.connect(ctx.destination);
     lp.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(ctx.destination);
     return true;
+  }
+  function setSoundState(on){
+    soundOn = on;
+    btn.setAttribute('aria-pressed', soundOn);
+    btn.setAttribute('aria-label', soundOn ? 'Couper le son' : 'Activer le son');
+    btnLabel.textContent = soundOn ? 'on' : 'off';
   }
   function resumeAudio(){
     if (!ctx || ctx.state === 'running') return Promise.resolve(!!ctx);
@@ -47,13 +54,25 @@ var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     }
     return audioResume;
   }
+  function unlockAudio(){
+    if (!ctx && !initAudio()) return Promise.resolve(false);
+    return resumeAudio();
+  }
+  btn.addEventListener('pointerdown', unlockAudio, { passive: true });
+  btn.addEventListener('touchstart', unlockAudio, { passive: true });
   btn.addEventListener('click', function(){
-    if (!ctx && !initAudio()) return;
-    soundOn = !soundOn;
-    btn.setAttribute('aria-pressed', soundOn);
-    btn.setAttribute('aria-label', soundOn ? 'Couper le son' : 'Activer le son');
-    btnLabel.textContent = soundOn ? 'on' : 'off';
-    if (soundOn) pluckHero(R - 1, .5, .5);
+    if (soundOn){
+      setSoundState(false);
+      return;
+    }
+    unlockAudio().then(function(running){
+      if (!running) {
+        setSoundState(false);
+        return;
+      }
+      setSoundState(true);
+      pluckHero(R - 1, .5, .5);
+    });
   });
   var soundVisibilityFrame = 0;
   function updateSoundVisibility(){
@@ -689,7 +708,7 @@ var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     ridges.forEach(function(rd){ rd.draw(performance.now(), 0, .3, 0); }); drawSky(0);
     layoutSky(); drawBg(0, 0); addEventListener('resize', function(){ layoutSky(); drawBg(0, 0); });
     Str.prototype.draw = function(){};
-    document.getElementById('term').innerHTML = '<span class="line"><span class="pr">$</span> kubectl apply -f <span class="hl">passion.yaml</span></span><span class="line">deployment.apps/rznce créé</span><span class="line"><span class="pr">$</span> curl rznce.fr/ouais-mais</span><span class="line"><span class="hl">200 OK</span> — encore un souci résolu à 2h du matin</span>';
+    document.getElementById('term').innerHTML = '<span class="line"><span class="pr">$</span> kubectl apply -f <span class="hl">passion.yaml</span></span><span class="line">deployment.apps/rznce créé</span><span class="line"><span class="pr">$</span> curl rznce.fr/ouais-mais</span><span class="line"><span class="hl">200 OK</span> — rien ne vibre de travers</span>';
     return;
   }
   if (hasGsap) gsap.ticker.add(frame); else (function loop(){ frame(); requestAnimationFrame(loop); })();
@@ -709,7 +728,7 @@ var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     { h: '<span class="dim">64 octets : seq=3 temps=12,1 ms</span>', d: .6, ping: pings[2] },
     { h: '<span class="ok">3 envoyés, 3 reçus. Même fréquence.</span>', d: .5 },
     { h: '<span class="pr">$</span> curl rznce.fr/ouais-mais', d: .9 },
-    { h: '<span class="hl">200 OK</span> — encore un souci résolu à 2h du matin', d: .6 }
+    { h: '<span class="hl">200 OK</span> — rien ne vibre de travers', d: .6 }
   ];
   function render(cur){ term.innerHTML = lines.map(function(l){ return '<span class="line">' + l + '</span>'; }).join('') + (cur ? '<span class="cursor"></span>' : ''); }
 

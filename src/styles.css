@@ -26,6 +26,15 @@ body::after{
 a{color:inherit;}
 a:focus-visible,button:focus-visible{outline:1px solid var(--gold); outline-offset:6px;}
 ::selection{background:var(--gold); color:var(--night);}
+.page-top{position:absolute; top:0;}
+.skip-link{
+  position:fixed; z-index:100; top:1rem; left:1rem;
+  transform:translateY(calc(-100% - 2rem));
+  color:var(--night); background:var(--gold);
+  padding:.75rem 1rem; border-radius:999px; text-decoration:none;
+  transition:transform .2s ease;
+}
+.skip-link:focus-visible{transform:translateY(0);}
 
 header{display:flex; justify-content:space-between; align-items:baseline; padding:3.2rem calc(var(--pad) + 6rem) 2rem var(--pad); font-size:.8rem;}
 .logo{font-family:var(--serif); font-weight:700; font-stretch:112%; font-size:1.45rem; letter-spacing:-.05em; text-decoration:none;}
@@ -129,6 +138,17 @@ html.menu-open{overflow:hidden;}
 .hero-foot{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:clamp(2rem,6vw,6rem); align-items:start;}
 .hero-foot > div > p{font-size:1rem; line-height:1.7; color:var(--ivory); max-width:40ch;}
 .hero-foot p strong{color:var(--ivory); font-weight:500;}
+.tech-badges{
+  display:flex; flex-wrap:wrap; gap:.55rem;
+  max-width:42rem; margin-top:1.25rem;
+  list-style:none; font-family:var(--mono);
+}
+.tech-badges li{
+  color:var(--mist); border:1px solid var(--line);
+  border-radius:999px; padding:.35rem .65rem;
+  font-size:.68rem; line-height:1; background:rgba(242,234,245,.03);
+}
+.tech-badges li:first-child{color:var(--gold); border-color:rgba(232,195,90,.38);}
 .term-win{
   position:relative; max-width:34rem;
   border:1px solid rgba(242,234,245,.18); border-radius:14px;

@@ -17,9 +17,11 @@ export default function App() {
 
   return (
     <>
+      <a className="skip-link" href="#contenu">Aller au contenu</a>
+      <span id="top" className="page-top" aria-hidden="true" />
       <AmbientBackground />
       <SiteHeader />
-      <main>
+      <main id="contenu">
         <Hero />
         <Manifesto />
         <Offers />

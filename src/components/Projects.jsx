@@ -32,7 +32,7 @@ export default function Projects() {
     <section className="articles" id="projets">
       <div className="sec-head">
         <h2>projets<span className="dot">.</span></h2>
-        <p>Ce que j’ai construit, à consulter directement.</p>
+        <p>Des morceaux d’infra réels, documentés pour montrer comment je raisonne.</p>
       </div>
       {projects.map((project) => <ProjectCase key={project.name} project={project} />)}
       <a className="btn-ghost more" href="https://github.com/roxane451" target="_blank" rel="noopener noreferrer">

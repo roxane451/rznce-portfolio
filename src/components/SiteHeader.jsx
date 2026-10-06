@@ -1,5 +1,5 @@
 const menuItems = [
-  ['accueil', '#', 0],
+  ['accueil', '#top', 0],
   ['manifeste', '#manifeste', 1],
   ['offres', '#offres', 2],
   ['projets', '#projets', 3],
@@ -11,16 +11,17 @@ export default function SiteHeader() {
   return (
     <>
       <header>
-        <a className="logo" href="#" aria-label="rznce, accueil">
+        <a className="logo" href="#top" aria-label="rznce, accueil">
           rznce<i>.</i>
         </a>
-        <button className="sound" id="sound" aria-pressed="false" aria-label="Activer le son">
+        <button type="button" className="sound" id="sound" aria-pressed="false" aria-label="Activer le son">
           <span className="bars" aria-hidden="true"><i /><i /><i /></span>
           <span id="soundLabel">off</span>
         </button>
       </header>
 
       <button
+        type="button"
         className="burger"
         id="burger"
         aria-expanded="false"
@@ -46,7 +47,7 @@ export default function SiteHeader() {
         </nav>
         <div className="menu-foot">
           <a className="mail" href="mailto:bonjour@rznce.fr">bonjour@rznce.fr</a>
-          <button className="sound tune" id="tune" aria-label="Changer le diapason">
+          <button type="button" className="sound tune" id="tune" aria-label="Changer le diapason">
             <span id="tuneLabel">la = 432 Hz</span>
           </button>
         </div>
